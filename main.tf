@@ -15,20 +15,21 @@ data "aws_ami" "latest_amazon_linux" {
 }
 data "aws_vpc" "default" {
   filter {
-    name = "tag:Name"
+    name   = "tag:Name"
     values = ["3-tier-vpc"]
   }
 }
 
 data "aws_subnet" "subnet1" {
   filter {
-    name = "tag:Name"
+    name   = "tag:Name"
     values = ["subnet1"]
   }
 }
+
 data "aws_subnet" "subnet2" {
   filter {
-    name = "tag:Name"
+    name   = "tag:Name"
     values = ["subnet2"]
   }
 }
@@ -58,7 +59,7 @@ data "aws_subnet" "subnet2" {
 resource "aws_security_group" "web" {
   name        = "WebServer-SG-1"
   description = "Security Group for my WebServer"
-  vpc_id      = data.aws_vpc.default.id          # This need to be added since AWS Provider v4.29+ to set VPC id
+  vpc_id      = data.aws_vpc.default.id # This need to be added since AWS Provider v4.29+ to set VPC id
 
   ingress {
     description = "Allow port HTTP"
@@ -144,15 +145,16 @@ resource "aws_launch_template" "web" {
 }
 
 resource "aws_autoscaling_group" "web" {
-  name                = "WebServer-Highly-Available-ASG-Ver-${aws_launch_template.web.latest_version}"
-  min_size            = 2
-  max_size            = 2
-  min_elb_capacity    = 2
-  health_check_type   = "EC2"
+  name             = "WebServer-Highly-Available-ASG-Ver-${aws_launch_template.web.latest_version}"
+  min_size         = 2
+  max_size         = 4
+  desired_capacity = 3
+  # min_elb_capacity    = 2
+  health_check_type         = "EC2"
   wait_for_capacity_timeout = 0
   health_check_grace_period = 300
-  vpc_zone_identifier = [data.aws_subnet.subnet1.id,data.aws_subnet.subnet2.id]
-  target_group_arns   = [aws_lb_target_group.web.arn]
+  vpc_zone_identifier       = [data.aws_subnet.subnet1.id, data.aws_subnet.subnet2.id]
+  target_group_arns         = [aws_lb_target_group.web.arn]
 
   launch_template {
     id      = aws_launch_template.web.id
@@ -183,7 +185,7 @@ resource "aws_lb" "web" {
   name               = "WebServer-HighlyAvailable-ALB"
   load_balancer_type = "application"
   security_groups    = [aws_security_group.web.id]
-  subnets            = [data.aws_subnet.subnet1.id,data.aws_subnet.subnet2.id]
+  subnets            = [data.aws_subnet.subnet1.id, data.aws_subnet.subnet2.id]
 }
 
 resource "aws_lb_target_group" "web" {
@@ -209,4 +211,3 @@ resource "aws_lb_listener" "http" {
 output "web_loadbalancer_url" {
   value = aws_lb.web.dns_name
 }
-
